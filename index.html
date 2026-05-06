@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>PostPilot — AI Content Repurposing</title>
+  <meta name="description" content="Turn one blog post into platform-optimized content for Twitter, LinkedIn, Instagram, and TikTok.">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: #0a0a0a; color: #fff; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 2rem; }
+    .badge { display: inline-block; padding: 0.5rem 1rem; border-radius: 9999px; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.3); margin-bottom: 2rem; font-size: 0.875rem; color: #818cf8; }
+    .hero { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 2rem; background: linear-gradient(180deg, #0a0a0a 0%, #111 100%); }
+    .hero h1 { font-size: 4rem; font-weight: 800; line-height: 1.1; margin: 0 0 1.5rem; background: linear-gradient(135deg, #fff 0%, #818cf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+    .hero p { font-size: 1.25rem; line-height: 1.6; color: rgba(255,255,255,0.7); margin: 0 0 2rem; max-width: 600px; }
+    .btn { padding: 0.875rem 2rem; border-radius: 12px; font-size: 1rem; font-weight: 600; cursor: pointer; border: none; }
+    .btn-primary { background: #6366f1; color: #fff; }
+    .btn-secondary { background: transparent; color: #fff; border: 1px solid rgba(255,255,255,0.2); }
+    .platforms { margin-top: 4rem; display: flex; gap: 3rem; justify-content: center; flex-wrap: wrap; opacity: 0.5; }
+    .features { padding: 6rem 2rem; }
+    .features h2 { font-size: 2.5rem; font-weight: 700; text-align: center; margin-bottom: 1rem; }
+    .features > p { text-align: center; color: rgba(255,255,255,0.6); font-size: 1.125rem; margin-bottom: 4rem; max-width: 600px; margin-left: auto; margin-right: auto; }
+    .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; }
+    .feature-card { padding: 2rem; border-radius: 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); }
+    .feature-card .icon { font-size: 2rem; margin-bottom: 1rem; }
+    .feature-card h3 { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.75rem; }
+    .feature-card p { color: rgba(255,255,255,0.6); line-height: 1.6; }
+    .pricing { padding: 6rem 2rem; text-align: center; }
+    .pricing h2 { font-size: 2.5rem; font-weight: 700; margin-bottom: 1rem; }
+    .pricing > p { color: rgba(255,255,255,0.6); font-size: 1.125rem; margin-bottom: 4rem; }
+    .pricing-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 2rem; max-width: 1000px; margin: 0 auto; }
+    .pricing-card { padding: 2rem; border-radius: 16px; background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); position: relative; }
+    .pricing-card.popular { background: rgba(99, 102, 241, 0.1); border: 2px solid #6366f1; }
+    .pricing-card.popular .popular-badge { position: absolute; top: -12px; left: 50%; transform: translateX(-50%); padding: 0.25rem 1rem; border-radius: 9999px; background: #6366f1; font-size: 0.75rem; font-weight: 600; }
+    .pricing-card h3 { font-size: 1.5rem; font-weight: 700; margin-bottom: 0.5rem; }
+    .pricing-card .price { font-size: 3rem; font-weight: 800; margin-bottom: 0.5rem; }
+    .pricing-card .price span { font-size: 1rem; font-weight: 400; color: rgba(255,255,255,0.5); }
+    .pricing-card .desc { color: rgba(255,255,255,0.6); margin-bottom: 2rem; }
+    .pricing-card ul { list-style: none; padding: 0; margin: 0 0 2rem; }
+    .pricing-card li { padding: 0.5rem 0; color: rgba(255,255,255,0.7); display: flex; align-items: center; gap: 0.5rem; }
+    .pricing-card li::before { content: "✓"; color: #6366f1; }
+    .waitlist { padding: 6rem 2rem; text-align: center; }
+    .waitlist-card { max-width: 600px; margin: 0 auto; padding: 3rem; border-radius: 24px; background: linear-gradient(135deg, rgba(99, 102, 241, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%); border: 1px solid rgba(99, 102, 241, 0.2); }
+    .waitlist-card h2 { font-size: 2rem; font-weight: 700; margin-bottom: 1rem; }
+    .waitlist-card p { color: rgba(255,255,255,0.6); margin-bottom: 2rem; }
+    .waitlist-form { display: flex; gap: 0.5rem; max-width: 400px; margin: 0 auto; }
+    .waitlist-form input { flex: 1; padding: 0.75rem 1rem; border-radius: 12px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); color: #fff; font-size: 1rem; outline: none; }
+    .waitlist-form button { padding: 0.75rem 1.5rem; border-radius: 12px; background: #6366f1; color: #fff; border: none; font-size: 1rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    footer { padding: 2rem; text-align: center; border-top: 1px solid rgba(255,255,255,0.05); color: rgba(255,255,255,0.4); font-size: 0.875rem; }
+  </style>
+</head>
+<body>
+  <section class="hero">
+    <div style="max-width: 800px; margin: 0 auto;">
+      <div class="badge">AI-Powered Content Repurposing</div>
+      <h1>One Post. Every Platform. Zero Effort.</h1>
+      <p>PostPilot takes your blog post and instantly creates optimized content for Twitter, LinkedIn, Instagram, and TikTok. Stop rewriting. Start publishing.</p>
+      <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+        <button class="btn btn-primary">Join the Waitlist</button>
+        <button class="btn btn-secondary">Watch Demo</button>
+      </div>
+    </div>
+    <div class="platforms">
+      <span>Twitter</span>
+      <span>LinkedIn</span>
+      <span>Instagram</span>
+      <span>TikTok</span>
+    </div>
+  </section>
+
+  <section class="features">
+    <div class="container">
+      <h2>How It Works</h2>
+      <p>Paste your blog post URL and PostPilot handles the rest. Platform-specific content in seconds.</p>
+      <div class="feature-grid">
+        <div class="feature-card">
+          <div class="icon">🎯</div>
+          <h3>Platform-Specific Optimization</h3>
+          <p>Each platform gets content tailored to its unique audience, character limits, and engagement patterns.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">🎨</div>
+          <h3>Tone & Voice Matching</h3>
+          <p>PostPilot learns your brand voice and maintains consistency across all platforms automatically.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">⏰</div>
+          <h3>Smart Scheduling</h3>
+          <p>Auto-schedule posts for peak engagement times on each platform. Set it and forget it.</p>
+        </div>
+        <div class="feature-card">
+          <div class="icon">📊</div>
+          <h3>Analytics Dashboard</h3>
+          <p>Track performance across all platforms in one place. See what works and optimize accordingly.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="pricing">
+    <div class="container">
+      <h2>Simple Pricing</h2>
+      <p>Start free. Scale when you're ready.</p>
+      <div class="pricing-grid">
+        <div class="pricing-card">
+          <h3>Free</h3>
+          <div class="price">$0<span>/mo</span></div>
+          <p class="desc">Perfect for getting started</p>
+          <ul>
+            <li>3 posts/month</li>
+            <li>2 platforms</li>
+            <li>Basic analytics</li>
+            <li>Community support</li>
+          </ul>
+          <button class="btn btn-secondary" style="width: 100%;">Get Started</button>
+        </div>
+        <div class="pricing-card popular">
+          <div class="popular-badge">Most Popular</div>
+          <h3>Pro</h3>
+          <div class="price">$29<span>/mo</span></div>
+          <p class="desc">For serious creators</p>
+          <ul>
+            <li>50 posts/month</li>
+            <li>All 4 platforms</li>
+            <li>Advanced analytics</li>
+            <li>Priority support</li>
+            <li>Custom tone matching</li>
+          </ul>
+          <button class="btn btn-primary" style="width: 100%;">Get Started</button>
+        </div>
+        <div class="pricing-card">
+          <h3>Team</h3>
+          <div class="price">$99<span>/mo</span></div>
+          <p class="desc">For agencies & teams</p>
+          <ul>
+            <li>Unlimited posts</li>
+            <li>All platforms</li>
+            <li>Team collaboration</li>
+            <li>API access</li>
+            <li>White-label reports</li>
+            <li>Dedicated support</li>
+          </ul>
+          <button class="btn btn-secondary" style="width: 100%;">Get Started</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="waitlist">
+    <div class="waitlist-card">
+      <h2>Join the Waitlist</h2>
+      <p>Be first in line when we launch. Early adopters get 50% off forever.</p>
+      <div class="waitlist-form">
+        <input type="email" placeholder="Enter your email">
+        <button>Join</button>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2026 PostPilot. Built with AI by Pokee.</p>
+  </footer>
+</body>
+</html>
