@@ -1,0 +1,826 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Competitor Intelligence Dashboard | AI Agent Platforms</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f1117;--surface:#1a1d27;--surface-2:#242836;--surface-3:#2d3143;--border:#353a4f;--text:#e4e7f0;--text-secondary:#8b92a8;--accent:#6366f1;--accent-hover:#818cf8;--green:#10b981;--red:#ef4444;--yellow:#f59e0b;--blue:#3b82f6;--purple:#8b5cf6;--cyan:#06b6d4;--sidebar-w:260px;--radius:12px}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:6px}::-webkit-scrollbar-track{background:var(--surface)}::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+
+/* Sidebar */
+.sidebar{width:var(--sidebar-w);background:var(--surface);border-right:1px solid var(--border);position:fixed;top:0;left:0;height:100vh;display:flex;flex-direction:column;z-index:100}
+.sidebar-header{padding:24px 20px;border-bottom:1px solid var(--border)}
+.sidebar-header h1{font-size:16px;font-weight:700;color:var(--accent)}
+.sidebar-header p{font-size:11px;color:var(--text-secondary);margin-top:4px}
+.nav-section{padding:12px 12px 4px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1.2px;color:var(--text-secondary)}
+.nav-item{display:flex;align-items:center;padding:10px 16px;margin:2px 8px;border-radius:8px;cursor:pointer;font-size:13px;color:var(--text-secondary);transition:all .15s}
+.nav-item:hover{background:var(--surface-2);color:var(--text)}
+.nav-item.active{background:rgba(99,102,241,.15);color:var(--accent)}
+.nav-item svg{width:16px;height:16px;margin-right:10px;flex-shrink:0}
+.sidebar-footer{margin-top:auto;padding:16px;border-top:1px solid var(--border);font-size:11px;color:var(--text-secondary)}
+
+/* Main */
+.main{margin-left:var(--sidebar-w);flex:1;padding:32px;max-width:1400px}
+.page{display:none}.page.active{display:block}
+.page-header{margin-bottom:28px}
+.page-header h2{font-size:24px;font-weight:700;margin-bottom:6px}
+.page-header p{color:var(--text-secondary);font-size:14px}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:20px}
+.card-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.card-header h3{font-size:16px;font-weight:600}
+.badge{display:inline-flex;align-items:center;padding:4px 10px;border-radius:20px;font-size:11px;font-weight:600}
+.badge-green{background:rgba(16,185,129,.15);color:var(--green)}
+.badge-blue{background:rgba(59,130,246,.15);color:var(--blue)}
+.badge-purple{background:rgba(139,92,246,.15);color:var(--purple)}
+.badge-yellow{background:rgba(245,158,11,.15);color:var(--yellow)}
+.badge-red{background:rgba(239,68,68,.15);color:var(--red)}
+
+/* Grid */
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:20px}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.grid-5{display:grid;grid-template-columns:repeat(5,1fr);gap:16px}
+@media(max-width:1200px){.grid-3,.grid-5{grid-template-columns:repeat(2,1fr)}}
+@media(max-width:768px){.grid-2,.grid-3,.grid-5{grid-template-columns:1fr}.sidebar{display:none}.main{margin-left:0}}
+
+/* Stats */
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center}
+.stat-card .value{font-size:28px;font-weight:700;color:var(--accent)}
+.stat-card .label{font-size:12px;color:var(--text-secondary);margin-top:4px}
+
+/* Table */
+.table-container{overflow-x:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{padding:12px 16px;text-align:left;border-bottom:1px solid var(--border)}
+th{background:var(--surface-2);color:var(--text-secondary);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.5px;cursor:pointer;user-select:none;white-space:nowrap}
+th:hover{color:var(--accent)}
+td{color:var(--text)}
+tr:hover td{background:var(--surface-2)}
+.company-cell{display:flex;align-items:center;gap:10px}
+.company-dot{width:10px;height:10px;border-radius:50%}
+.clickable{cursor:pointer;color:var(--accent)}
+.clickable:hover{text-decoration:underline}
+
+/* Feature Matrix */
+.matrix-grid{display:grid;grid-template-columns:200px repeat(5,1fr);gap:1px;background:var(--border);border-radius:var(--radius);overflow:hidden}
+.matrix-cell{background:var(--surface);padding:10px 12px;font-size:12px;display:flex;align-items:center;justify-content:center}
+.matrix-cell.header{background:var(--surface-2);font-weight:600;color:var(--text-secondary);font-size:11px}
+.matrix-cell.feature-name{justify-content:flex-start;font-weight:500;color:var(--text)}
+.has{color:var(--green)}.partial{color:var(--yellow)}.no{color:var(--red)}
+
+/* Chart containers */
+.chart-container{position:relative;height:400px;background:var(--surface-2);border-radius:var(--radius);padding:20px;overflow:hidden}
+.pricing-bars{display:flex;align-items:flex-end;justify-content:space-around;height:320px;padding-top:20px}
+.bar-group{display:flex;flex-direction:column;align-items:center;gap:4px;flex:1}
+.bar-group .bars{display:flex;gap:3px;align-items:flex-end;height:260px}
+.bar{width:18px;border-radius:4px 4px 0 0;transition:height .5s ease;position:relative;cursor:pointer}
+.bar:hover{opacity:.8}
+.bar-label{font-size:10px;color:var(--text-secondary);text-align:center;margin-top:8px;max-width:80px}
+.bar-tooltip{position:absolute;bottom:100%;left:50%;transform:translateX(-50%);background:var(--surface-3);padding:4px 8px;border-radius:4px;font-size:10px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .2s}
+.bar:hover .bar-tooltip{opacity:1}
+
+/* Scatter plot */
+.scatter-plot{position:relative;width:100%;height:360px;background:var(--surface-2);border-radius:var(--radius)}
+.scatter-dot{position:absolute;width:48px;height:48px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;cursor:pointer;transition:transform .2s;border:2px solid rgba(255,255,255,.2)}
+.scatter-dot:hover{transform:scale(1.2);z-index:10}
+.axis-label{position:absolute;font-size:11px;color:var(--text-secondary)}
+.x-axis{bottom:8px;left:50%;transform:translateX(-50%)}
+.y-axis{left:8px;top:50%;transform:translateY(-50%) rotate(-90deg);white-space:nowrap}
+
+/* Timeline */
+.timeline{position:relative;padding-left:24px}
+.timeline::before{content:'';position:absolute;left:8px;top:0;bottom:0;width:2px;background:var(--border)}
+.timeline-item{position:relative;margin-bottom:20px;padding-left:20px}
+.timeline-item::before{content:'';position:absolute;left:-20px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--accent);border:2px solid var(--surface)}
+.timeline-date{font-size:11px;color:var(--text-secondary);margin-bottom:4px}
+.timeline-title{font-size:14px;font-weight:600;margin-bottom:4px}
+.timeline-desc{font-size:12px;color:var(--text-secondary)}
+.timeline-company{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;margin-bottom:4px}
+
+/* Sentiment */
+.sentiment-bar{display:flex;height:28px;border-radius:6px;overflow:hidden;margin:8px 0}
+.sentiment-positive{background:var(--green)}
+.sentiment-negative{background:var(--red)}
+.quote{font-style:italic;font-size:12px;color:var(--text-secondary);padding:8px 12px;border-left:3px solid var(--border);margin:8px 0}
+
+/* Profile */
+.profile-header{display:flex;align-items:center;gap:16px;margin-bottom:24px}
+.profile-icon{width:56px;height:56px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:#fff}
+.profile-meta{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.meta-item{background:var(--surface-2);border-radius:8px;padding:12px}
+.meta-item .meta-label{font-size:10px;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px}
+.meta-item .meta-value{font-size:14px;font-weight:600;margin-top:4px}
+
+/* Search */
+.search-container{position:relative;margin-bottom:20px}
+.search-input{width:100%;padding:12px 16px 12px 40px;background:var(--surface);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;outline:none}
+.search-input:focus{border-color:var(--accent)}
+.search-icon{position:absolute;left:14px;top:50%;transform:translateY(-50%);color:var(--text-secondary)}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:20px;border-bottom:1px solid var(--border);padding-bottom:0}
+.tab{padding:10px 16px;font-size:13px;color:var(--text-secondary);cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.tab:hover{color:var(--text)}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* Back button */
+.back-btn{display:inline-flex;align-items:center;gap:6px;padding:8px 14px;background:var(--surface-2);border:1px solid var(--border);border-radius:8px;color:var(--text-secondary);font-size:12px;cursor:pointer;margin-bottom:16px}
+.back-btn:hover{color:var(--text);border-color:var(--accent)}
+
+/* Filter chips */
+.filter-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+.chip{padding:6px 12px;border-radius:20px;font-size:11px;background:var(--surface-2);border:1px solid var(--border);cursor:pointer;color:var(--text-secondary)}
+.chip.active{background:rgba(99,102,241,.15);border-color:var(--accent);color:var(--accent)}
+</style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-header">
+    <h1>CI Dashboard</h1>
+    <p>AI Agent Competitor Intel</p>
+  </div>
+  <div class="nav-section">Overview</div>
+  <div class="nav-item active" data-page="overview">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+    Dashboard
+  </div>
+  <div class="nav-item" data-page="comparison">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 16l4-4 4 4 5-5"/></svg>
+    Comparison Table
+  </div>
+  <div class="nav-item" data-page="features">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+    Feature Matrix
+  </div>
+  <div class="nav-item" data-page="pricing">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+    Pricing
+  </div>
+  <div class="nav-item" data-page="sentiment">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M8 14s1.5 2 4 2 4-2 4-2"/><line x1="9" y1="9" x2="9.01" y2="9"/><line x1="15" y1="9" x2="15.01" y2="9"/></svg>
+    Sentiment
+  </div>
+  <div class="nav-item" data-page="timeline">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+    Timeline
+  </div>
+  <div class="nav-item" data-page="positioning">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><circle cx="12" cy="12" r="8"/><line x1="12" y1="2" x2="12" y2="4"/><line x1="12" y1="20" x2="12" y2="22"/><line x1="2" y1="12" x2="4" y2="12"/><line x1="20" y1="12" x2="22" y2="12"/></svg>
+    Market Map
+  </div>
+  <div class="nav-section">Profiles</div>
+  <div class="nav-item" data-page="profile-manus">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
+    Manus AI
+  </div>
+  <div class="nav-item" data-page="profile-relevance">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
+    Relevance AI
+  </div>
+  <div class="nav-item" data-page="profile-zapier">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
+    Zapier
+  </div>
+  <div class="nav-item" data-page="profile-n8n">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
+    n8n
+  </div>
+  <div class="nav-item" data-page="profile-lindy">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/></svg>
+    Lindy AI
+  </div>
+  <div class="sidebar-footer">
+    Updated May 2026 &middot; Pokee AI
+  </div>
+</aside>
+
+<main class="main">
+
+<!-- OVERVIEW PAGE -->
+<div class="page active" id="page-overview">
+  <div class="page-header">
+    <h2>Competitor Intelligence Overview</h2>
+    <p>5 AI agent platforms tracked &middot; Last updated May 2026</p>
+  </div>
+  <div class="grid-5" style="margin-bottom:28px">
+    <div class="stat-card"><div class="value">5</div><div class="label">Competitors Tracked</div></div>
+    <div class="stat-card"><div class="value">$2.1B</div><div class="label">Largest Acquisition</div></div>
+    <div class="stat-card"><div class="value">9,000+</div><div class="label">Max Integrations</div></div>
+    <div class="stat-card"><div class="value">$0-$800</div><div class="label">Monthly Price Range</div></div>
+    <div class="stat-card"><div class="value">26</div><div class="label">Features Compared</div></div>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Quick Comparison</h3></div>
+    <div class="table-container">
+      <table id="overview-table">
+        <thead>
+          <tr>
+            <th>Company</th>
+            <th>Founded</th>
+            <th>HQ</th>
+            <th>Funding/Valuation</th>
+            <th>Starting Price</th>
+            <th>Integrations</th>
+            <th>Target Market</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="company-cell"><span class="company-dot" style="background:#ef4444"></span><span class="clickable" onclick="showPage('profile-manus')">Manus AI</span></span></td>
+            <td>2025</td>
+            <td>Singapore</td>
+            <td>Acquired by Meta ($2B+)</td>
+            <td>Free / $20/mo</td>
+            <td>Limited (~50)</td>
+            <td>Knowledge Workers</td>
+          </tr>
+          <tr>
+            <td><span class="company-cell"><span class="company-dot" style="background:#8b5cf6"></span><span class="clickable" onclick="showPage('profile-relevance')">Relevance AI</span></span></td>
+            <td>2020</td>
+            <td>Sydney, AU</td>
+            <td>$37M raised (Series B)</td>
+            <td>Free / $19/mo</td>
+            <td>2,000+</td>
+            <td>B2B RevOps/Marketing</td>
+          </tr>
+          <tr>
+            <td><span class="company-cell"><span class="company-dot" style="background:#f59e0b"></span><span class="clickable" onclick="showPage('profile-zapier')">Zapier</span></span></td>
+            <td>2011</td>
+            <td>San Francisco</td>
+            <td>$230M raised ($5B val)</td>
+            <td>Free / $19.99/mo</td>
+            <td>9,000+</td>
+            <td>SMBs to Enterprise</td>
+          </tr>
+          <tr>
+            <td><span class="company-cell"><span class="company-dot" style="background:#10b981"></span><span class="clickable" onclick="showPage('profile-n8n')">n8n</span></span></td>
+            <td>2019</td>
+            <td>Berlin, DE</td>
+            <td>$52M raised</td>
+            <td>Free (self-host) / &euro;24/mo</td>
+            <td>400+ native</td>
+            <td>Developers/Technical</td>
+          </tr>
+          <tr>
+            <td><span class="company-cell"><span class="company-dot" style="background:#06b6d4"></span><span class="clickable" onclick="showPage('profile-lindy')">Lindy AI</span></span></td>
+            <td>2023</td>
+            <td>San Francisco</td>
+            <td>VC backed (Menlo)</td>
+            <td>$49.99/mo</td>
+            <td>5,000+</td>
+            <td>Professionals/SMBs</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="grid-2">
+    <div class="card">
+      <div class="card-header"><h3>Key Insights</h3></div>
+      <ul style="list-style:none;font-size:13px;line-height:2">
+        <li>&#x2022; Manus AI's $2B acquisition by Meta signals big tech's interest in autonomous agents</li>
+        <li>&#x2022; Zapier remains the integration king (9,000+ apps) but faces pricing pressure</li>
+        <li>&#x2022; n8n offers 75% cost savings for high-volume users via self-hosting</li>
+        <li>&#x2022; Relevance AI leads in multi-agent orchestration for enterprise teams</li>
+        <li>&#x2022; Lindy AI innovates with "Agent Swarms" and proactive assistance</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>Market Trends</h3></div>
+      <ul style="list-style:none;font-size:13px;line-height:2">
+        <li>&#x2022; Shift from rule-based automation to AI-native agents</li>
+        <li>&#x2022; Credit/usage-based pricing replacing flat-rate models</li>
+        <li>&#x2022; Enterprise security (SOC 2, HIPAA) now table stakes</li>
+        <li>&#x2022; Multi-agent collaboration emerging as key differentiator</li>
+        <li>&#x2022; Self-hosting demand growing due to data sovereignty concerns</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- COMPARISON PAGE -->
+<div class="page" id="page-comparison">
+  <div class="page-header">
+    <h2>Detailed Comparison</h2>
+    <p>Side-by-side analysis of all competitors across key dimensions</p>
+  </div>
+  <div class="search-container">
+    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+    <input type="text" class="search-input" id="comparison-search" placeholder="Search competitors..." oninput="filterTable()">
+  </div>
+  <div class="card">
+    <div class="table-container">
+      <table id="comparison-table">
+        <thead>
+          <tr>
+            <th onclick="sortTable(0)">Company</th>
+            <th onclick="sortTable(1)">AI Agent Type</th>
+            <th onclick="sortTable(2)">Pricing Model</th>
+            <th onclick="sortTable(3)">Entry Price</th>
+            <th onclick="sortTable(4)">Pro Price</th>
+            <th onclick="sortTable(5)">Integrations</th>
+            <th onclick="sortTable(6)">Self-Host</th>
+            <th onclick="sortTable(7)">Open Source</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr><td>Manus AI</td><td>Autonomous General-Purpose</td><td>Credit-based</td><td>$20/mo</td><td>$200/mo</td><td>~50</td><td>No</td><td>No</td></tr>
+          <tr><td>Relevance AI</td><td>Multi-Agent Workforce</td><td>Action + Credit</td><td>$19/mo</td><td>$234/mo</td><td>2,000+</td><td>No</td><td>No</td></tr>
+          <tr><td>Zapier</td><td>Agentic Automation</td><td>Task-based</td><td>$19.99/mo</td><td>$69/mo</td><td>9,000+</td><td>No</td><td>No</td></tr>
+          <tr><td>n8n</td><td>AI Workflow Agents</td><td>Execution-based</td><td>&euro;24/mo (Free self-host)</td><td>&euro;60/mo</td><td>400+</td><td>Yes</td><td>Yes (fair-code)</td></tr>
+          <tr><td>Lindy AI</td><td>AI Employees</td><td>Credit-based</td><td>$49.99/mo</td><td>$99.99/mo</td><td>5,000+</td><td>No</td><td>No</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- FEATURE MATRIX PAGE -->
+<div class="page" id="page-features">
+  <div class="page-header">
+    <h2>Feature Matrix</h2>
+    <p>Capability comparison across 26 features</p>
+  </div>
+  <div class="filter-chips">
+    <span class="chip active" onclick="filterFeatures('all')">All Features</span>
+    <span class="chip" onclick="filterFeatures('ai')">AI & Agents</span>
+    <span class="chip" onclick="filterFeatures('platform')">Platform</span>
+    <span class="chip" onclick="filterFeatures('enterprise')">Enterprise</span>
+    <span class="chip" onclick="filterFeatures('ux')">UX & Access</span>
+  </div>
+  <div class="card" style="overflow-x:auto">
+    <div class="matrix-grid" id="feature-matrix">
+      <div class="matrix-cell header">Feature</div>
+      <div class="matrix-cell header">Manus AI</div>
+      <div class="matrix-cell header">Relevance AI</div>
+      <div class="matrix-cell header">Zapier</div>
+      <div class="matrix-cell header">n8n</div>
+      <div class="matrix-cell header">Lindy AI</div>
+    </div>
+  </div>
+</div>
+
+<!-- PRICING PAGE -->
+<div class="page" id="page-pricing">
+  <div class="page-header">
+    <h2>Pricing Comparison</h2>
+    <p>Visual comparison of pricing tiers across all competitors</p>
+  </div>
+  <div class="card">
+    <div class="card-header"><h3>Monthly Pricing by Tier (USD)</h3></div>
+    <div class="chart-container">
+      <div class="pricing-bars" id="pricing-chart"></div>
+    </div>
+    <div style="display:flex;gap:16px;margin-top:16px;flex-wrap:wrap">
+      <span style="font-size:11px;display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:2px;background:#6366f1"></span>Free/Starter</span>
+      <span style="font-size:11px;display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:2px;background:#8b5cf6"></span>Pro/Standard</span>
+      <span style="font-size:11px;display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:2px;background:#ec4899"></span>Team/Business</span>
+      <span style="font-size:11px;display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:2px;background:#f59e0b"></span>Enterprise/Max</span>
+    </div>
+  </div>
+  <div class="card" style="margin-top:20px">
+    <div class="card-header"><h3>Pricing Model Details</h3></div>
+    <div class="table-container">
+      <table>
+        <thead><tr><th>Company</th><th>Model</th><th>Unit</th><th>Free Tier</th><th>Best Value Tier</th><th>Cost Predictability</th></tr></thead>
+        <tbody>
+          <tr><td>Manus AI</td><td>Credit-based</td><td>Credits per task</td><td>1,000 + 300/day</td><td>Standard ($20/mo)</td><td><span class="badge badge-red">Low</span></td></tr>
+          <tr><td>Relevance AI</td><td>Action + Vendor Credit</td><td>Actions per agent task</td><td>200 actions</td><td>Pro ($19/mo)</td><td><span class="badge badge-yellow">Medium</span></td></tr>
+          <tr><td>Zapier</td><td>Task-based</td><td>Each step = 1 task</td><td>100 tasks</td><td>Professional ($19.99/mo)</td><td><span class="badge badge-yellow">Medium</span></td></tr>
+          <tr><td>n8n</td><td>Execution-based</td><td>Full workflow run = 1</td><td>Unlimited (self-host)</td><td>Starter (&euro;24/mo)</td><td><span class="badge badge-green">High</span></td></tr>
+          <tr><td>Lindy AI</td><td>Credit-based</td><td>Credits per task complexity</td><td>7-day trial (500 credits)</td><td>Plus ($49.99/mo)</td><td><span class="badge badge-red">Low</span></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- SENTIMENT PAGE -->
+<div class="page" id="page-sentiment">
+  <div class="page-header">
+    <h2>Sentiment Tracker</h2>
+    <p>User sentiment analysis from reviews, G2, Product Hunt, and community forums</p>
+  </div>
+  <div id="sentiment-container"></div>
+</div>
+
+<!-- TIMELINE PAGE -->
+<div class="page" id="page-timeline">
+  <div class="page-header">
+    <h2>Recent Moves</h2>
+    <p>Chronological feed of competitor activity (2025-2026)</p>
+  </div>
+  <div class="filter-chips">
+    <span class="chip active" onclick="filterTimeline('all')">All</span>
+    <span class="chip" onclick="filterTimeline('manus')">Manus AI</span>
+    <span class="chip" onclick="filterTimeline('relevance')">Relevance AI</span>
+    <span class="chip" onclick="filterTimeline('zapier')">Zapier</span>
+    <span class="chip" onclick="filterTimeline('n8n')">n8n</span>
+    <span class="chip" onclick="filterTimeline('lindy')">Lindy AI</span>
+  </div>
+  <div class="card">
+    <div class="timeline" id="timeline-container"></div>
+  </div>
+</div>
+
+<!-- POSITIONING PAGE -->
+<div class="page" id="page-positioning">
+  <div class="page-header">
+    <h2>Market Positioning Map</h2>
+    <p>2D comparison: Ease of Use vs Power/Flexibility</p>
+  </div>
+  <div class="card">
+    <div class="scatter-plot" id="scatter-plot">
+      <div class="axis-label x-axis">Ease of Use &rarr;</div>
+      <div class="axis-label y-axis">Power / Flexibility &rarr;</div>
+    </div>
+    <div style="display:flex;gap:16px;margin-top:16px;flex-wrap:wrap;justify-content:center">
+      <span style="font-size:11px;display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:50%;background:#ef4444"></span>Manus AI</span>
+      <span style="font-size:11px;display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:50%;background:#8b5cf6"></span>Relevance AI</span>
+      <span style="font-size:11px;display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:50%;background:#f59e0b"></span>Zapier</span>
+      <span style="font-size:11px;display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:50%;background:#10b981"></span>n8n</span>
+      <span style="font-size:11px;display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:50%;background:#06b6d4"></span>Lindy AI</span>
+    </div>
+  </div>
+</div>
+
+<!-- PROFILE PAGES -->
+<div class="page" id="page-profile-manus">
+  <button class="back-btn" onclick="showPage('overview')">&larr; Back to Overview</button>
+  <div class="profile-header">
+    <div class="profile-icon" style="background:#ef4444">M</div>
+    <div><h2>Manus AI</h2><p style="color:var(--text-secondary);font-size:13px">Autonomous General-Purpose AI Agent &middot; Acquired by Meta</p></div>
+  </div>
+  <div class="profile-meta">
+    <div class="meta-item"><div class="meta-label">Founded</div><div class="meta-value">March 2025</div></div>
+    <div class="meta-item"><div class="meta-label">HQ</div><div class="meta-value">Singapore</div></div>
+    <div class="meta-item"><div class="meta-label">Valuation</div><div class="meta-value">$2B+ (acquired)</div></div>
+    <div class="meta-item"><div class="meta-label">ARR</div><div class="meta-value">$100M (Dec 2025)</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><h3 style="margin-bottom:12px">Overview</h3><p style="font-size:13px;line-height:1.7;color:var(--text-secondary)">Manus AI is a general-purpose autonomous AI agent developed by Butterfly Effect (Monica.im). It executes complex, multi-step tasks autonomously within sandboxed virtual environments. Acquired by Meta for $2B+ in December 2025, making it a core part of Meta's AI strategy. Achieved $100M ARR within its first year.</p></div>
+    <div class="card"><h3 style="margin-bottom:12px">Key Strengths</h3><ul style="font-size:13px;line-height:2;color:var(--text-secondary);padding-left:16px"><li>Fully autonomous end-to-end task execution</li><li>Natural language interface (no coding needed)</li><li>Multi-model architecture (Claude, Qwen)</li><li>Real-time task transparency ("Manus Computer")</li><li>Backed by Meta's resources and infrastructure</li></ul></div>
+  </div>
+  <div class="card" style="margin-top:20px"><h3 style="margin-bottom:12px">Pricing Tiers</h3>
+    <table><thead><tr><th>Plan</th><th>Price</th><th>Credits</th><th>Concurrent Tasks</th></tr></thead>
+    <tbody>
+      <tr><td>Free</td><td>$0</td><td>1,000 + 300/day</td><td>1</td></tr>
+      <tr><td>Standard</td><td>$20/mo</td><td>4,000/mo + 300/day</td><td>20</td></tr>
+      <tr><td>Customizable</td><td>$40/mo</td><td>8,000/mo + 300/day</td><td>20</td></tr>
+      <tr><td>Extended</td><td>$200/mo</td><td>40,000/mo + 300/day</td><td>20</td></tr>
+      <tr><td>Team</td><td>$20/seat/mo</td><td>4,000/seat (pooled)</td><td>Variable</td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<div class="page" id="page-profile-relevance">
+  <button class="back-btn" onclick="showPage('overview')">&larr; Back to Overview</button>
+  <div class="profile-header">
+    <div class="profile-icon" style="background:#8b5cf6">R</div>
+    <div><h2>Relevance AI</h2><p style="color:var(--text-secondary);font-size:13px">No-Code AI Workforce Platform &middot; Multi-Agent Orchestration</p></div>
+  </div>
+  <div class="profile-meta">
+    <div class="meta-item"><div class="meta-label">Founded</div><div class="meta-value">2020</div></div>
+    <div class="meta-item"><div class="meta-label">HQ</div><div class="meta-value">Sydney, Australia</div></div>
+    <div class="meta-item"><div class="meta-label">Funding</div><div class="meta-value">$37M (Series B)</div></div>
+    <div class="meta-item"><div class="meta-label">Employees</div><div class="meta-value">~80</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><h3 style="margin-bottom:12px">Overview</h3><p style="font-size:13px;line-height:1.7;color:var(--text-secondary)">Relevance AI enables businesses to build and manage collaborative AI workforces. Founded in Sydney by Daniel Vassilev, Jacky Koh, and Daniel Palmer. The platform focuses on multi-agent systems where agents hand off tasks to each other. Deployed at Canva, Autodesk, and KPMG. 145% net revenue retention in 2025.</p></div>
+    <div class="card"><h3 style="margin-bottom:12px">Key Strengths</h3><ul style="font-size:13px;line-height:2;color:var(--text-secondary);padding-left:16px"><li>Multi-agent collaboration and orchestration</li><li>No-code visual workflow builder</li><li>RAG knowledge base integration</li><li>Model flexibility (GPT-4, Claude, Gemini)</li><li>Enterprise security (SOC 2 Type II, GDPR)</li></ul></div>
+  </div>
+  <div class="card" style="margin-top:20px"><h3 style="margin-bottom:12px">Pricing Tiers</h3>
+    <table><thead><tr><th>Plan</th><th>Price</th><th>Actions/mo</th><th>Users</th></tr></thead>
+    <tbody>
+      <tr><td>Free</td><td>$0</td><td>200</td><td>1</td></tr>
+      <tr><td>Pro</td><td>$19/mo</td><td>2,500</td><td>1</td></tr>
+      <tr><td>Team</td><td>$234/mo</td><td>7,000</td><td>5 build / 45 end</td></tr>
+      <tr><td>Enterprise</td><td>Custom</td><td>Custom</td><td>Unlimited</td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<div class="page" id="page-profile-zapier">
+  <button class="back-btn" onclick="showPage('overview')">&larr; Back to Overview</button>
+  <div class="profile-header">
+    <div class="profile-icon" style="background:#f59e0b">Z</div>
+    <div><h2>Zapier</h2><p style="color:var(--text-secondary);font-size:13px">AI-Powered Automation Platform &middot; 9,000+ Integrations</p></div>
+  </div>
+  <div class="profile-meta">
+    <div class="meta-item"><div class="meta-label">Founded</div><div class="meta-value">2011</div></div>
+    <div class="meta-item"><div class="meta-label">HQ</div><div class="meta-value">San Francisco</div></div>
+    <div class="meta-item"><div class="meta-label">Funding</div><div class="meta-value">$230M ($5B valuation)</div></div>
+    <div class="meta-item"><div class="meta-label">Integrations</div><div class="meta-value">9,000+</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><h3 style="margin-bottom:12px">Overview</h3><p style="font-size:13px;line-height:1.7;color:var(--text-secondary)">Zapier has evolved from a simple automation tool into an AI orchestration platform. In 2026, it launched autonomous AI Agents, Copilot NL builder, and Canvas 2.0. Users save 15-20 hours/week. 84% of enterprises increased AI agent investment. SOC 2 Type II and ISO 27001 certified.</p></div>
+    <div class="card"><h3 style="margin-bottom:12px">Key Strengths</h3><ul style="font-size:13px;line-height:2;color:var(--text-secondary);padding-left:16px"><li>Industry-leading 9,000+ app integrations</li><li>Natural language Copilot for workflow building</li><li>AI Agents with autonomous decision-making</li><li>AI Guardrails for PII detection/compliance</li><li>Enterprise governance (audit logs, RBAC)</li></ul></div>
+  </div>
+  <div class="card" style="margin-top:20px"><h3 style="margin-bottom:12px">Pricing Tiers</h3>
+    <table><thead><tr><th>Plan</th><th>Price</th><th>Tasks/mo</th><th>Polling</th></tr></thead>
+    <tbody>
+      <tr><td>Free</td><td>$0</td><td>100</td><td>15 min</td></tr>
+      <tr><td>Professional</td><td>$19.99/mo</td><td>750</td><td>1 min</td></tr>
+      <tr><td>Team</td><td>$69/mo</td><td>2,000</td><td>15 sec</td></tr>
+      <tr><td>Enterprise</td><td>Custom</td><td>Unlimited</td><td>Custom</td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<div class="page" id="page-profile-n8n">
+  <button class="back-btn" onclick="showPage('overview')">&larr; Back to Overview</button>
+  <div class="profile-header">
+    <div class="profile-icon" style="background:#10b981">n8</div>
+    <div><h2>n8n</h2><p style="color:var(--text-secondary);font-size:13px">Open-Source AI Workflow Automation &middot; Self-Hosted Option</p></div>
+  </div>
+  <div class="profile-meta">
+    <div class="meta-item"><div class="meta-label">Founded</div><div class="meta-value">2019</div></div>
+    <div class="meta-item"><div class="meta-label">HQ</div><div class="meta-value">Berlin, Germany</div></div>
+    <div class="meta-item"><div class="meta-label">Funding</div><div class="meta-value">$52M raised</div></div>
+    <div class="meta-item"><div class="meta-label">License</div><div class="meta-value">Fair-code (open source)</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><h3 style="margin-bottom:12px">Overview</h3><p style="font-size:13px;line-height:1.7;color:var(--text-secondary)">n8n is an open-source, low-code workflow automation platform focused on developers and technical teams. Its execution-based pricing (whole workflow = 1 execution) provides up to 75% cost savings vs task-based competitors. Includes 70+ AI nodes with LangChain integration, vector databases, and memory management.</p></div>
+    <div class="card"><h3 style="margin-bottom:12px">Key Strengths</h3><ul style="font-size:13px;line-height:2;color:var(--text-secondary);padding-left:16px"><li>Free self-hosted option with unlimited workflows</li><li>Custom JavaScript/Python in any node</li><li>70+ AI nodes (LangChain, vector stores)</li><li>Full data sovereignty and GDPR compliance</li><li>75% cost savings vs Zapier at high volume</li></ul></div>
+  </div>
+  <div class="card" style="margin-top:20px"><h3 style="margin-bottom:12px">Pricing Tiers</h3>
+    <table><thead><tr><th>Plan</th><th>Price</th><th>Executions/mo</th><th>Features</th></tr></thead>
+    <tbody>
+      <tr><td>Community</td><td>Free (self-host)</td><td>Unlimited</td><td>Full platform, own infra</td></tr>
+      <tr><td>Starter</td><td>&euro;24/mo</td><td>2,500</td><td>Cloud hosted, 5 workflows</td></tr>
+      <tr><td>Pro</td><td>&euro;60/mo</td><td>10,000</td><td>Admin controls, debugging</td></tr>
+      <tr><td>Business</td><td>&euro;800/mo</td><td>40,000</td><td>SSO, governance</td></tr>
+      <tr><td>Enterprise</td><td>Custom</td><td>Unlimited</td><td>200+ concurrent, SLA</td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+<div class="page" id="page-profile-lindy">
+  <button class="back-btn" onclick="showPage('overview')">&larr; Back to Overview</button>
+  <div class="profile-header">
+    <div class="profile-icon" style="background:#06b6d4">L</div>
+    <div><h2>Lindy AI</h2><p style="color:var(--text-secondary);font-size:13px">AI Employee Platform &middot; Proactive Autonomous Agents</p></div>
+  </div>
+  <div class="profile-meta">
+    <div class="meta-item"><div class="meta-label">Founded</div><div class="meta-value">2023</div></div>
+    <div class="meta-item"><div class="meta-label">HQ</div><div class="meta-value">San Francisco</div></div>
+    <div class="meta-item"><div class="meta-label">Revenue</div><div class="meta-value">$5.1M (Oct 2024)</div></div>
+    <div class="meta-item"><div class="meta-label">Employees</div><div class="meta-value">37</div></div>
+  </div>
+  <div class="grid-2">
+    <div class="card"><h3 style="margin-bottom:12px">Overview</h3><p style="font-size:13px;line-height:1.7;color:var(--text-secondary)">Lindy AI creates "AI Employees" that proactively manage tasks like email, scheduling, and CRM updates. Founded by Flo Crivello. Features Agent Swarms for parallel task execution and Autopilot Mode for full computer control. Claims to save users 2 hours/day. Received acquisition offer in April 2025.</p></div>
+    <div class="card"><h3 style="margin-bottom:12px">Key Strengths</h3><ul style="font-size:13px;line-height:2;color:var(--text-secondary);padding-left:16px"><li>Proactive assistance (anticipates needs)</li><li>Agent Swarms for parallel execution</li><li>Autopilot Mode (controls virtual computer)</li><li>5,000+ integrations</li><li>SOC 2 Type II, HIPAA, GDPR compliant</li></ul></div>
+  </div>
+  <div class="card" style="margin-top:20px"><h3 style="margin-bottom:12px">Pricing Tiers</h3>
+    <table><thead><tr><th>Plan</th><th>Price</th><th>Credits/mo</th><th>Inboxes</th></tr></thead>
+    <tbody>
+      <tr><td>Free Trial</td><td>$0 (7 days)</td><td>500</td><td>1</td></tr>
+      <tr><td>Plus</td><td>$49.99/mo</td><td>Standard</td><td>1</td></tr>
+      <tr><td>Pro</td><td>$99.99/mo</td><td>5,000</td><td>3</td></tr>
+      <tr><td>Max</td><td>$199.99/mo</td><td>20,000</td><td>5</td></tr>
+      <tr><td>Enterprise</td><td>Custom</td><td>Custom</td><td>Unlimited</td></tr>
+    </tbody></table>
+  </div>
+</div>
+
+</main>
+
+<script>
+// Data
+const features = [
+  {name:'Autonomous Task Execution',cat:'ai',manus:'has',relevance:'partial',zapier:'has',n8n:'has',lindy:'has'},
+  {name:'Multi-Agent Collaboration',cat:'ai',manus:'partial',relevance:'has',zapier:'has',n8n:'partial',lindy:'has'},
+  {name:'Natural Language Setup',cat:'ux',manus:'has',relevance:'has',zapier:'has',n8n:'partial',lindy:'has'},
+  {name:'Visual Workflow Builder',cat:'platform',manus:'no',relevance:'has',zapier:'has',n8n:'has',lindy:'partial'},
+  {name:'Custom Code (JS/Python)',cat:'platform',manus:'no',relevance:'partial',zapier:'partial',n8n:'has',lindy:'no'},
+  {name:'Self-Hosting Option',cat:'enterprise',manus:'no',relevance:'no',zapier:'no',n8n:'has',lindy:'no'},
+  {name:'Open Source',cat:'platform',manus:'no',relevance:'no',zapier:'no',n8n:'has',lindy:'no'},
+  {name:'RAG / Knowledge Base',cat:'ai',manus:'partial',relevance:'has',zapier:'partial',n8n:'has',lindy:'partial'},
+  {name:'Vector Database Support',cat:'ai',manus:'no',relevance:'has',zapier:'no',n8n:'has',lindy:'no'},
+  {name:'Memory / Context Persistence',cat:'ai',manus:'has',relevance:'partial',zapier:'partial',n8n:'has',lindy:'has'},
+  {name:'Multi-Model Support (LLM)',cat:'ai',manus:'has',relevance:'has',zapier:'has',n8n:'has',lindy:'has'},
+  {name:'Web Browsing / Scraping',cat:'ai',manus:'has',relevance:'no',zapier:'has',n8n:'partial',lindy:'has'},
+  {name:'Human-in-the-Loop',cat:'enterprise',manus:'partial',relevance:'has',zapier:'has',n8n:'has',lindy:'partial'},
+  {name:'SOC 2 Compliance',cat:'enterprise',manus:'partial',relevance:'has',zapier:'has',n8n:'partial',lindy:'has'},
+  {name:'HIPAA Compliance',cat:'enterprise',manus:'no',relevance:'no',zapier:'no',n8n:'partial',lindy:'has'},
+  {name:'SSO / SAML',cat:'enterprise',manus:'no',relevance:'has',zapier:'has',n8n:'has',lindy:'has'},
+  {name:'Audit Logs',cat:'enterprise',manus:'no',relevance:'has',zapier:'has',n8n:'has',lindy:'has'},
+  {name:'API Access',cat:'platform',manus:'has',relevance:'has',zapier:'has',n8n:'has',lindy:'has'},
+  {name:'Webhook Support',cat:'platform',manus:'partial',relevance:'has',zapier:'has',n8n:'has',lindy:'has'},
+  {name:'Mobile Access',cat:'ux',manus:'partial',relevance:'no',zapier:'has',n8n:'no',lindy:'has'},
+  {name:'Team Collaboration',cat:'enterprise',manus:'partial',relevance:'has',zapier:'has',n8n:'has',lindy:'has'},
+  {name:'Template Library',cat:'ux',manus:'partial',relevance:'has',zapier:'has',n8n:'has',lindy:'has'},
+  {name:'Real-time Monitoring',cat:'platform',manus:'has',relevance:'has',zapier:'has',n8n:'has',lindy:'has'},
+  {name:'Conditional Logic',cat:'platform',manus:'has',relevance:'has',zapier:'has',n8n:'has',lindy:'has'},
+  {name:'Error Handling / Retry',cat:'platform',manus:'partial',relevance:'has',zapier:'has',n8n:'has',lindy:'partial'},
+  {name:'Voice AI Agents',cat:'ai',manus:'no',relevance:'has',zapier:'no',n8n:'no',lindy:'has'}
+];
+
+const sentimentData = [
+  {company:'Manus AI',color:'#ef4444',positive:65,negative:35,
+    pros:['"Excels at repetitive research and report generation - saves significant time"','"Non-technical users benefit from its no-code interface"','"Asynchronous execution lets you assign tasks and return later"'],
+    cons:['"Credit-based system is opaque and expensive, especially Pro tier at $199/month"','"Customer support is unresponsive with automated replies"','"Privacy concerns amplified after Meta acquisition"']},
+  {company:'Relevance AI',color:'#8b5cf6',positive:78,negative:22,
+    pros:['"Democratizes AI adoption - non-technical teams can build sophisticated automation"','"Multi-agent orchestration is a real differentiator for complex workflows"','"G2 rating: 4.3/5 - versatile and well-integrated"'],
+    cons:['"Credit-based pricing can be confusing and expensive at scale"','"Setting up effective workflows has a steeper learning curve than expected"','"Scaling beyond basic plans gets costly for SMEs"']},
+  {company:'Zapier',color:'#f59e0b',positive:82,negative:18,
+    pros:['"Saves 15-20 hours per week automating workflows"','"9,000+ integrations - connects with virtually every SaaS tool"','"Copilot makes automation accessible to non-technical users"'],
+    cons:['"Task-based pricing becomes prohibitively expensive for high-volume workflows"','"AI Copilot struggles with multi-branch complex workflows"','"92% success rate for simple Zaps but only 80% for complex ones"']},
+  {company:'n8n',color:'#10b981',positive:80,negative:20,
+    pros:['"75% cost savings vs Zapier for high-volume scenarios"','"Self-hosting gives complete data sovereignty and GDPR compliance"','"70+ AI nodes with LangChain make it the best for AI workflows"'],
+    cons:['"Steep learning curve - requires familiarity with APIs and scripting"','"Only 400+ integrations vs Zapier\'s 9,000+"','"Less polished UI compared to commercial alternatives"']},
+  {company:'Lindy AI',color:'#06b6d4',positive:75,negative:25,
+    pros:['"Saves an average of 2 hours daily on mundane tasks"','"Proactive assistance - anticipates needs and prepares meeting materials"','"Agent Swarms enable parallel execution of hundreds of tasks"'],
+    cons:['"Credit consumption is unpredictable - hard to forecast monthly costs"','"Initial training requires consistent user feedback to align with preferences"','"Deep data access raises privacy concerns for some organizations"']}
+];
+
+const timelineEvents = [
+  {date:'Apr 2026',company:'zapier',title:'AI Guardrails Released',desc:'Automatic PII detection, toxicity screening, and prompt injection prevention for enterprise workflows.'},
+  {date:'Mar 2026',company:'lindy',title:'Lindy 3.0 Platform Launch',desc:'Introduced Agent Builder, Autopilot Mode, and Agent Swarms for parallel task execution.'},
+  {date:'Feb 2026',company:'zapier',title:'AI Agents Exit Beta',desc:'Autonomous workflow planning agents now generally available across all paid tiers.'},
+  {date:'Jan 2026',company:'n8n',title:'n8n 2.0 Canvas Released',desc:'Major UI overhaul with improved debugging tools and execution log comparisons.'},
+  {date:'Dec 2025',company:'manus',title:'Meta Acquires Manus for $2B+',desc:'Landmark acquisition signals big tech pivot toward autonomous AI agents. Manus achieves $100M ARR.'},
+  {date:'Dec 2025',company:'manus',title:'AWS Partnership Announced',desc:'Manus selects AWS with Firecracker virtualization for secure global infrastructure.'},
+  {date:'Nov 2025',company:'relevance',title:'Series B Fundraise Closes',desc:'$24M extension to Series B led by Bessemer Venture Partners. Total raised: $37M.'},
+  {date:'Oct 2025',company:'n8n',title:'AI Agent Nodes Launched',desc:'New Agent nodes enable autonomous goal-directed workflows with LangChain integration.'},
+  {date:'Sep 2025',company:'zapier',title:'Copilot NL Builder Introduced',desc:'Natural language workflow builder allows creating Zaps by describing goals in plain English.'},
+  {date:'Aug 2025',company:'lindy',title:'5,000 Integrations Milestone',desc:'Platform reaches 5,000 connected tools including Salesforce, Slack, and HubSpot.'},
+  {date:'Jul 2025',company:'manus',title:'Wide Research Feature Launch',desc:'Multi-agent parallel research capability enabling large-scale data processing.'},
+  {date:'Jun 2025',company:'relevance',title:'Canva & Autodesk Deployments',desc:'Major enterprise wins demonstrate platform scalability for Fortune 500 companies.'},
+  {date:'May 2025',company:'n8n',title:'Enterprise Governance Features',desc:'SSO/SAML, audit trails, and policy enforcement for regulated industries.'},
+  {date:'Apr 2025',company:'manus',title:'$75M Series B at $500M Valuation',desc:'Led by Benchmark Capital with participation from Tencent and ZhenFund.'},
+  {date:'Apr 2025',company:'lindy',title:'Acquisition Offer Received',desc:'Undisclosed acquisition offer validates strategic position in AI agent market.'},
+  {date:'Mar 2025',company:'manus',title:'Manus AI Launches',desc:'Platform debuts, surpassing GPT-4 on GAIA benchmark for multi-step task execution.'}
+];
+
+// Navigation
+function showPage(pageId) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + pageId).classList.add('active');
+  const navItem = document.querySelector(`[data-page="${pageId}"]`);
+  if (navItem) navItem.classList.add('active');
+  window.scrollTo(0, 0);
+}
+document.querySelectorAll('.nav-item').forEach(item => {
+  item.addEventListener('click', () => showPage(item.dataset.page));
+});
+
+// Feature Matrix
+function renderFeatureMatrix(filter = 'all') {
+  const matrix = document.getElementById('feature-matrix');
+  const headerRow = '<div class="matrix-cell header">Feature</div><div class="matrix-cell header">Manus AI</div><div class="matrix-cell header">Relevance AI</div><div class="matrix-cell header">Zapier</div><div class="matrix-cell header">n8n</div><div class="matrix-cell header">Lindy AI</div>';
+  let html = headerRow;
+  const filtered = filter === 'all' ? features : features.filter(f => f.cat === filter);
+  filtered.forEach(f => {
+    const icon = v => v === 'has' ? '<span class="has">&#10003;</span>' : v === 'partial' ? '<span class="partial">&#9673;</span>' : '<span class="no">&#10005;</span>';
+    html += `<div class="matrix-cell feature-name">${f.name}</div>`;
+    html += `<div class="matrix-cell">${icon(f.manus)}</div>`;
+    html += `<div class="matrix-cell">${icon(f.relevance)}</div>`;
+    html += `<div class="matrix-cell">${icon(f.zapier)}</div>`;
+    html += `<div class="matrix-cell">${icon(f.n8n)}</div>`;
+    html += `<div class="matrix-cell">${icon(f.lindy)}</div>`;
+  });
+  matrix.innerHTML = html;
+  matrix.style.gridTemplateColumns = '200px repeat(5, 1fr)';
+}
+function filterFeatures(cat) {
+  document.querySelectorAll('#page-features .chip').forEach(c => c.classList.remove('active'));
+  event.target.classList.add('active');
+  renderFeatureMatrix(cat);
+}
+
+// Pricing Chart
+function renderPricingChart() {
+  const data = [
+    {name:'Manus AI',tiers:[{l:'Free',v:0},{l:'Standard',v:20},{l:'Custom',v:40},{l:'Extended',v:200}]},
+    {name:'Relevance AI',tiers:[{l:'Free',v:0},{l:'Pro',v:19},{l:'Team',v:234},{l:'Enterprise',v:500}]},
+    {name:'Zapier',tiers:[{l:'Free',v:0},{l:'Pro',v:20},{l:'Team',v:69},{l:'Enterprise',v:400}]},
+    {name:'n8n',tiers:[{l:'Community',v:0},{l:'Starter',v:26},{l:'Pro',v:65},{l:'Business',v:870}]},
+    {name:'Lindy AI',tiers:[{l:'Trial',v:0},{l:'Plus',v:50},{l:'Pro',v:100},{l:'Max',v:200}]}
+  ];
+  const maxVal = 870;
+  const colors = ['#6366f1','#8b5cf6','#ec4899','#f59e0b'];
+  const chart = document.getElementById('pricing-chart');
+  let html = '';
+  data.forEach(company => {
+    html += '<div class="bar-group"><div class="bars">';
+    company.tiers.forEach((tier, i) => {
+      const h = Math.max(4, (tier.v / maxVal) * 240);
+      html += `<div class="bar" style="height:${h}px;background:${colors[i]}"><div class="bar-tooltip">${tier.l}: $${tier.v}/mo</div></div>`;
+    });
+    html += `</div><div class="bar-label">${company.name}</div></div>`;
+  });
+  chart.innerHTML = html;
+}
+
+// Sentiment
+function renderSentiment() {
+  const container = document.getElementById('sentiment-container');
+  let html = '';
+  sentimentData.forEach(s => {
+    html += `<div class="card">
+      <div class="card-header"><h3 style="display:flex;align-items:center;gap:8px"><span class="company-dot" style="background:${s.color}"></span>${s.company}</h3>
+        <span class="badge ${s.positive >= 80 ? 'badge-green' : s.positive >= 70 ? 'badge-blue' : 'badge-yellow'}">${s.positive}% positive</span>
+      </div>
+      <div class="sentiment-bar"><div class="sentiment-positive" style="width:${s.positive}%"></div><div class="sentiment-negative" style="width:${s.negative}%"></div></div>
+      <div class="grid-2" style="margin-top:12px">
+        <div><p style="font-size:11px;font-weight:600;color:var(--green);margin-bottom:8px">STRENGTHS</p>${s.pros.map(q=>'<div class="quote">'+q+'</div>').join('')}</div>
+        <div><p style="font-size:11px;font-weight:600;color:var(--red);margin-bottom:8px">WEAKNESSES</p>${s.cons.map(q=>'<div class="quote">'+q+'</div>').join('')}</div>
+      </div>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+
+// Timeline
+function renderTimeline(filter = 'all') {
+  const container = document.getElementById('timeline-container');
+  const colors = {manus:'#ef4444',relevance:'#8b5cf6',zapier:'#f59e0b',n8n:'#10b981',lindy:'#06b6d4'};
+  const names = {manus:'Manus AI',relevance:'Relevance AI',zapier:'Zapier',n8n:'n8n',lindy:'Lindy AI'};
+  const filtered = filter === 'all' ? timelineEvents : timelineEvents.filter(e => e.company === filter);
+  let html = '';
+  filtered.forEach(e => {
+    html += `<div class="timeline-item" data-company="${e.company}">
+      <div class="timeline-date">${e.date}</div>
+      <span class="timeline-company" style="background:${colors[e.company]}20;color:${colors[e.company]}">${names[e.company]}</span>
+      <div class="timeline-title">${e.title}</div>
+      <div class="timeline-desc">${e.desc}</div>
+    </div>`;
+  });
+  container.innerHTML = html;
+}
+function filterTimeline(company) {
+  document.querySelectorAll('#page-timeline .chip').forEach(c => c.classList.remove('active'));
+  event.target.classList.add('active');
+  renderTimeline(company);
+}
+
+// Scatter Plot
+function renderScatterPlot() {
+  const plot = document.getElementById('scatter-plot');
+  const competitors = [
+    {name:'Manus',color:'#ef4444',x:75,y:60},
+    {name:'Relevance',color:'#8b5cf6',x:55,y:80},
+    {name:'Zapier',color:'#f59e0b',x:85,y:65},
+    {name:'n8n',color:'#10b981',x:35,y:92},
+    {name:'Lindy',color:'#06b6d4',x:72,y:55}
+  ];
+  competitors.forEach(c => {
+    const dot = document.createElement('div');
+    dot.className = 'scatter-dot';
+    dot.style.background = c.color;
+    dot.style.left = `calc(${c.x}% - 24px)`;
+    dot.style.top = `calc(${100 - c.y}% - 24px)`;
+    dot.textContent = c.name;
+    dot.title = `${c.name}\nEase of Use: ${c.x}/100\nPower: ${c.y}/100`;
+    plot.appendChild(dot);
+  });
+  // Grid lines
+  for (let i = 25; i <= 75; i += 25) {
+    const hLine = document.createElement('div');
+    hLine.style.cssText = `position:absolute;left:5%;right:5%;top:${i}%;height:1px;background:var(--border);opacity:.3`;
+    plot.insertBefore(hLine, plot.firstChild);
+    const vLine = document.createElement('div');
+    vLine.style.cssText = `position:absolute;top:5%;bottom:5%;left:${i}%;width:1px;background:var(--border);opacity:.3`;
+    plot.insertBefore(vLine, plot.firstChild);
+  }
+}
+
+// Table Sort
+let sortDir = 1;
+function sortTable(col) {
+  const table = document.getElementById('comparison-table');
+  const rows = Array.from(table.tBodies[0].rows);
+  sortDir *= -1;
+  rows.sort((a, b) => {
+    const aVal = a.cells[col].textContent.trim();
+    const bVal = b.cells[col].textContent.trim();
+    return aVal.localeCompare(bVal) * sortDir;
+  });
+  rows.forEach(r => table.tBodies[0].appendChild(r));
+}
+
+// Search/Filter
+function filterTable() {
+  const query = document.getElementById('comparison-search').value.toLowerCase();
+  const rows = document.querySelectorAll('#comparison-table tbody tr');
+  rows.forEach(row => {
+    row.style.display = row.textContent.toLowerCase().includes(query) ? '' : 'none';
+  });
+}
+
+// Init
+renderFeatureMatrix();
+renderPricingChart();
+renderSentiment();
+renderTimeline();
+renderScatterPlot();
+</script>
+</body>
+</html>
